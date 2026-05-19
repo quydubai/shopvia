@@ -6,7 +6,7 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "shopvia-db"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "6903025d-d1a7-4637-84f2-2d99d015ba90"
 
 # Environment variables
 [vars]
