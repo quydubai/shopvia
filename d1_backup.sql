@@ -1,7 +1,26 @@
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    balance REAL DEFAULT 0,
+    role TEXT DEFAULT 'user' CHECK(role IN ('user','admin')),
+    status TEXT DEFAULT 'active' CHECK(status IN ('active','banned')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 INSERT INTO users VALUES(1,'admin','admin@clone99.com','$2a$10$8riP8DurSLrkL9OVjOA0M.tC7ZfYLSCZlZLgzVq2ybigrtriHppJK',10000000.0,'admin','banned','2026-05-16 17:49:42','2026-05-17 15:26:37');
 INSERT INTO users VALUES(2,'demo','demo@clone99.com','$2a$10$Io3zVIucDkA5Sp9GRScyWuZfG11tKIwae9CY88pTswLPN5f2r6QKu',500000.0,'user','banned','2026-05-16 17:49:42','2026-05-17 15:26:42');
 INSERT INTO users VALUES(3,'quydubai','quydubai9999@gmail.com','$2a$10$1U4wWdInG/KmynHWyZiZce3lCinr6zN9dwAUhSVUf.uNPZfyNqMcG',9999999990640000.0,'admin','active','2026-05-16 17:51:01','2026-05-18 17:06:05');
 INSERT INTO users VALUES(4,'quydubai1','admin@huynhquymedia.net','$2a$10$zDz3tiWepwQAOGaqhHSVaemsrDHtWkX0ytIBinQw07juzoMWHOdBi',0.0,'admin','banned','2026-05-17 13:16:38','2026-05-17 15:27:05');
+CREATE TABLE categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    parent_group TEXT DEFAULT '',
+    sort_order INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 INSERT INTO categories VALUES(1,'CLONE NGOẠI','clone-ngoai','CLONE',0,'2026-05-16 17:49:42');
 INSERT INTO categories VALUES(2,'CLONE VIỆT','clone-viet','CLONE',1,'2026-05-16 17:49:42');
 INSERT INTO categories VALUES(3,'INSTAGRAM NEW CỔ','instagram-new-co','MẠNG XÃ HỘI',2,'2026-05-16 17:49:42');
@@ -22,6 +41,23 @@ INSERT INTO categories VALUES(17,'EXPRESS VPN','express-vpn','FAKE IP',16,'2026-
 INSERT INTO categories VALUES(18,'GMAIL','gmail','MAIL',17,'2026-05-16 17:49:42');
 INSERT INTO categories VALUES(19,'HOTMAIL - OUTLOOK','hotmail-outlook','MAIL',18,'2026-05-16 17:49:42');
 INSERT INTO categories VALUES(20,'Youtube Premium','youtube-premium','TK DIGITAL',0,'2026-05-18 17:09:05');
+CREATE TABLE products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    description TEXT DEFAULT '',
+    price REAL NOT NULL DEFAULT 0,
+    stock INTEGER NOT NULL DEFAULT 0,
+    data_content TEXT DEFAULT '',
+    status TEXT DEFAULT 'active' CHECK(status IN ('active','hidden')),
+    min_buy INTEGER DEFAULT 1,
+    max_buy INTEGER DEFAULT 100,
+    sold INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+  );
 INSERT INTO products VALUES(1,1,'Clone Ngoại XMDT 2024','clone-ngoai-xmdt-2024','Clone ngoại đã xác minh danh tính, checkpoint sạch',25000.0,0,'','active',1,100,150,'2026-05-16 17:49:42','2026-05-17 17:32:29');
 INSERT INTO products VALUES(2,1,'Clone Ngoại Cổ 2015-2020','clone-ngoai-co-2015','Clone ngoại tạo từ 2015-2020, bạn bè 1000+',45000.0,80,unistr('account1@email.com|pass123\u000aaccount2@email.com|pass456\u000aaccount3@email.com|pass789'),'active',1,100,0,'2026-05-16 17:49:42','2026-05-16 17:49:42');
 INSERT INTO products VALUES(3,2,'Clone Việt XMDT New','clone-viet-xmdt-new','Clone Việt xác minh danh tính, mới tạo',15000.0,200,unistr('account1@email.com|pass123\u000aaccount2@email.com|pass456\u000aaccount3@email.com|pass789'),'active',1,100,0,'2026-05-16 17:49:42','2026-05-16 17:49:42');
@@ -38,6 +74,18 @@ INSERT INTO products VALUES(13,15,'Netflix Premium 1 Tháng','netflix-1m','Netfl
 INSERT INTO products VALUES(14,16,'NordVPN 1 Năm','nordvpn-1y','NordVPN premium 1 năm',45000.0,80,unistr('account1@email.com|pass123\u000aaccount2@email.com|pass456\u000aaccount3@email.com|pass789'),'active',1,100,0,'2026-05-16 17:49:42','2026-05-16 17:49:42');
 INSERT INTO products VALUES(15,18,'Gmail Aged 2020','gmail-aged-2020','Gmail tạo từ 2020, POP/IMAP bật',5000.0,500,unistr('account1@email.com|pass123\u000aaccount2@email.com|pass456\u000aaccount3@email.com|pass789'),'active',1,100,0,'2026-05-16 17:49:42','2026-05-16 17:49:42');
 INSERT INTO products VALUES(16,10,'123123','123123','123',100000.0,0,'','active',1,100,54,'2026-05-17 17:26:15','2026-05-18 06:32:15');
+CREATE TABLE orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    total_price REAL NOT NULL,
+    data_received TEXT DEFAULT '',
+    status TEXT DEFAULT 'completed' CHECK(status IN ('pending','completed','cancelled','refunded')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (product_id) REFERENCES products(id)
+  );
 INSERT INTO orders VALUES(1,3,1,1,25000.0,'account1@email.com|pass123','completed','2026-05-17 15:39:40');
 INSERT INTO orders VALUES(2,3,1,3,75000.0,unistr('account2@email.com|pass456\u000aaccount3@email.com|pass789'),'completed','2026-05-17 15:39:57');
 INSERT INTO orders VALUES(3,3,1,1,25000.0,'','completed','2026-05-17 17:18:31');
@@ -48,6 +96,16 @@ INSERT INTO orders VALUES(7,3,16,52,5200000.0,unistr('nxcnxncnxx|12381282111\u00
 INSERT INTO orders VALUES(8,3,16,1,100000.0,'nxcnxncnxx|12381282111','completed','2026-05-18 06:32:15');
 INSERT INTO orders VALUES(9,3,9,1,120000.0,'account1@email.com|pass123','completed','2026-05-18 17:00:13');
 INSERT INTO orders VALUES(10,3,9,2,240000.0,unistr('account2@email.com|pass456\u000aaccount3@email.com|pass789'),'completed','2026-05-18 17:06:05');
+CREATE TABLE transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    type TEXT NOT NULL CHECK(type IN ('recharge','purchase','refund','admin_add','admin_sub')),
+    amount REAL NOT NULL,
+    balance_after REAL NOT NULL,
+    note TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
 INSERT INTO transactions VALUES(1,3,'recharge',50000.0,50000.0,'Nạp tiền qua bank - #1','2026-05-17 15:39:20');
 INSERT INTO transactions VALUES(2,3,'recharge',50000.0,100000.0,'Nạp tiền qua bank - #2','2026-05-17 15:39:25');
 INSERT INTO transactions VALUES(3,3,'purchase',-25000.0,75000.0,'Mua 1x Clone Ngoại XMDT 2024','2026-05-17 15:39:40');
@@ -62,10 +120,31 @@ INSERT INTO transactions VALUES(11,3,'purchase',-5200000.0,9999999991100000.0,'M
 INSERT INTO transactions VALUES(12,3,'purchase',-100000.0,9999999991000000.0,'Mua 1x 123123','2026-05-18 06:32:15');
 INSERT INTO transactions VALUES(13,3,'purchase',-120000.0,9999999990880000.0,'Mua 1x BM50$ Đã Verify','2026-05-18 17:00:13');
 INSERT INTO transactions VALUES(14,3,'purchase',-240000.0,9999999990640000.0,'Mua 2x BM50$ Đã Verify','2026-05-18 17:06:05');
+CREATE TABLE recharge_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    method TEXT NOT NULL CHECK(method IN ('bank','crypto')),
+    amount REAL NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+    proof TEXT DEFAULT '',
+    note TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
 INSERT INTO recharge_requests VALUES(1,3,'bank',50000.0,'approved','','','2026-05-17 05:51:11','2026-05-17 15:39:20');
 INSERT INTO recharge_requests VALUES(2,3,'bank',50000.0,'approved','','','2026-05-17 15:38:14','2026-05-17 15:39:25');
 INSERT INTO recharge_requests VALUES(3,3,'bank',50000.0,'approved','','','2026-05-17 16:12:20','2026-05-17 16:47:26');
 INSERT INTO recharge_requests VALUES(4,3,'bank',500000.0,'pending','','','2026-05-19 02:10:28',NULL);
+CREATE TABLE activity_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    action TEXT NOT NULL,
+    detail TEXT DEFAULT '',
+    ip TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
 INSERT INTO activity_logs VALUES(1,3,'register','Đăng ký tài khoản mới','','2026-05-16 17:51:01');
 INSERT INTO activity_logs VALUES(2,3,'login','Đăng nhập','','2026-05-17 02:04:23');
 INSERT INTO activity_logs VALUES(3,3,'reset_password','Đặt lại mật khẩu qua email','','2026-05-17 05:42:50');
@@ -99,6 +178,10 @@ INSERT INTO activity_logs VALUES(30,3,'login','Đăng nhập','','2026-05-18 17:
 INSERT INTO activity_logs VALUES(31,3,'login','Đăng nhập','','2026-05-18 17:46:09');
 INSERT INTO activity_logs VALUES(32,3,'recharge_request','Yêu cầu nạp 500,000đ qua bank','','2026-05-19 02:10:28');
 INSERT INTO activity_logs VALUES(33,3,'login','Đăng nhập','','2026-05-19 16:22:31');
+CREATE TABLE settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
 INSERT INTO settings VALUES('smtp','{"host":"smtp.gmail.com","port":587,"user":"huynhquymedia@gmail.com","pass":"wliwnpzlvfoqqhyu","from_name":"HuynhQuyMedia"}');
 INSERT INTO settings VALUES('site_name','HuynhQuyMedia.Net - Chuyên Cung Cấp Vía SLL');
 INSERT INTO settings VALUES('phone','0834724567');
@@ -106,6 +189,15 @@ INSERT INTO settings VALUES('telegram','quydubai');
 INSERT INTO settings VALUES('min_recharge','30000');
 INSERT INTO settings VALUES('bank_info','{"bank_name":"MBBANK","account_number":"2007029999","account_holder":"Huỳnh Ngọc Quý","note_format":"NAP [username]"}');
 INSERT INTO settings VALUES('crypto_address','{"network":"TRC20 (USDT)  ( Bảo trì )","address":"( Bảo trì )","rate":"1 USDT = 25,000 VND"}');
+CREATE TABLE password_resets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    token TEXT UNIQUE NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );
 INSERT INTO password_resets VALUES(1,2,'cdd92f098c4ad17907e641baeb320c77bba2724b28e4759a767bd07894b73599','2026-05-17T05:48:55.788Z',1,'2026-05-17 05:18:55');
 INSERT INTO password_resets VALUES(2,2,'3a13101a8b529b15dabc35e329f80cfd96df9ae320d7a1b8a665ca031fec662c','2026-05-17T05:49:30.062Z',1,'2026-05-17 05:19:30');
 INSERT INTO password_resets VALUES(3,3,'3aca5bbd946a2caa4616b86f96d645e9f262a132022b2fa68826066272805bee','2026-05-17T06:04:14.272Z',1,'2026-05-17 05:34:14');
@@ -115,6 +207,7 @@ INSERT INTO password_resets VALUES(6,3,'ce68586101971574ae4f1d76c36ac1efc879f956
 INSERT INTO password_resets VALUES(7,2,'7f6c045dba465db0cd31c5a021bea1fc299a334740621f44d29a6b54f84f2f60','2026-05-17T06:09:51.554Z',0,'2026-05-17 05:39:51');
 INSERT INTO password_resets VALUES(8,3,'4833c233bcc819c8bfff11717d48c7ce13b8cba373ac9c1aad3dc4a33c8b018c','2026-05-17T06:12:23.799Z',1,'2026-05-17 05:42:23');
 INSERT INTO password_resets VALUES(9,3,'eff211f2df11c915f7ce05aa18ce66c38334206ca9d1e1456a666fdb2ccb24fe','2026-05-18T18:11:19.581Z',0,'2026-05-18 17:41:19');
+CREATE TABLE blogs(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,slug TEXT UNIQUE NOT NULL,thumbnail TEXT DEFAULT "",summary TEXT DEFAULT "",content TEXT NOT NULL DEFAULT "",author_id INTEGER NOT NULL,status TEXT DEFAULT "published",views INTEGER DEFAULT 0,created_at DATETIME DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(author_id)REFERENCES users(id));
 INSERT INTO blogs VALUES(1,'Hướng dẫn mua hàng trên HuynhQuyMedia','huong-dan-mua-hang','','Hướng dẫn chi tiết từng bước đăng ký, nạp tiền và mua sản phẩm trên hệ thống.',unistr('## Bước 1: Đăng ký tài khoản\u000aTruy cập trang Đăng ký, điền tên đăng nhập, email và mật khẩu. Sau khi đăng ký thành công, bạn sẽ được chuyển về trang chủ.\u000a\u000a## Bước 2: Nạp tiền vào tài khoản\u000aVào mục **Nạp tiền** trên menu, chọn phương thức:\u000a- **Ngân hàng**: Chuyển khoản theo thông tin hiển thị, ghi đúng nội dung chuyển khoản.\u000a- **Crypto (USDT TRC20)**: Gửi USDT đến địa chỉ ví được cung cấp.\u000a\u000aSau khi chuyển tiền, hệ thống sẽ tự động hoặc admin sẽ duyệt trong vòng vài phút.\u000a\u000a## Bước 3: Chọn sản phẩm\u000aDuyệt danh mục sản phẩm trên trang chủ hoặc vào từng danh mục. Nhấn vào sản phẩm để xem chi tiết, giá và số lượng còn.\u000a\u000a## Bước 4: Đặt mua\u000aNhập số lượng cần mua và nhấn **Mua ngay**. Số dư sẽ được trừ tự động.\u000a\u000a## Bước 5: Nhận sản phẩm\u000aVào mục **Đơn hàng** để xem chi tiết sản phẩm đã mua. Dữ liệu sẽ hiển thị ngay sau khi thanh toán thành công.'),1,'published',2,'2026-05-17 13:10:30','2026-05-17 13:10:30');
 INSERT INTO blogs VALUES(2,'Hướng dẫn đổi trả và bảo hành','huong-dan-doi-tra-bao-hanh','','Chính sách đổi trả, bảo hành sản phẩm và cách yêu cầu hoàn tiền.',unistr('## Chính sách bảo hành\u000aTất cả sản phẩm trên HuynhQuyMedia đều được bảo hành theo mô tả của từng sản phẩm. Thời gian bảo hành cụ thể được ghi rõ trong phần chi tiết sản phẩm.\u000a\u000a## Điều kiện đổi trả\u000a- Sản phẩm không đúng mô tả hoặc không sử dụng được.\u000a- Sản phẩm bị lỗi ngay sau khi mua.\u000a- Yêu cầu đổi trả phải được gửi trong vòng **24 giờ** kể từ khi mua.\u000a\u000a## Cách yêu cầu hoàn tiền\u000a1. Liên hệ hỗ trợ qua **Telegram: @lv4343** hoặc **Hotline: 0337371928**.\u000a2. Cung cấp mã đơn hàng và lý do đổi trả.\u000a3. Admin sẽ kiểm tra và xử lý trong vòng **24 giờ**.\u000a4. Nếu đủ điều kiện, tiền sẽ được hoàn vào số dư tài khoản.\u000a\u000a## Trường hợp không được hoàn tiền\u000a- Sản phẩm đã sử dụng hoặc thay đổi thông tin.\u000a- Yêu cầu hoàn tiền sau 24 giờ kể từ khi mua.\u000a- Không cung cấp đủ bằng chứng lỗi sản phẩm.\u000a\u000a## Liên hệ hỗ trợ\u000a- Telegram: @lv4343\u000a- Hotline: 0337371928\u000a- Thời gian hỗ trợ: 24/7'),1,'published',2,'2026-05-17 13:10:30','2026-05-17 13:10:30');
 INSERT INTO sqlite_sequence VALUES('users',4);
