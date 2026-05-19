@@ -1,6 +1,6 @@
-// Dev: http://localhost:3001/api
-// Production: set VITE_API_URL trong Cloudflare Pages settings
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+// Dev: http://localhost:3001/api (Express server)
+// Production Cloudflare Pages: /api (Pages Functions)
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api')
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem('hqm_token')

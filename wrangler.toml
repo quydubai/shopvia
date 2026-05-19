@@ -1,0 +1,13 @@
+name = "shopvia"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "shopvia-db"
+database_id = "YOUR_DATABASE_ID_HERE"
+
+# Environment variables
+[vars]
+JWT_SECRET = "huynhquymedia_secret_key_change_in_production"
