@@ -2,7 +2,6 @@
   "name": "clone99-platform",
   "private": true,
   "version": "1.0.0",
-  "type": "module",
   "scripts": {
     "dev": "concurrently \"node server/index.js\" \"vite\"",
     "dev:client": "vite",

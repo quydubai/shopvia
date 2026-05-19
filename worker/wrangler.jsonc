@@ -1,0 +1,16 @@
+{
+  "name": "clone99-worker",
+  "main": "src/index.js",
+  "compatibility_date": "2024-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "clone99-db",
+      "database_id": "YOUR_D1_DATABASE_ID"
+    }
+  ],
+  "vars": {
+    "JWT_SECRET": "huynhquymedia_secret_key_change_in_production"
+  }
+}
