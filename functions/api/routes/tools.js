@@ -11,10 +11,52 @@ function extractUID(input) {
   return u ? u[1] : input
 }
 
-async function checkAccount(raw) {
+async function checkAccount(raw, env) {
   const uid = extractUID(raw)
+  
+  // Use Facebook App Access Token if available
+  const accessToken = env?.FB_APP_ID && env?.FB_APP_SECRET 
+    ? `${env.FB_APP_ID}|${env.FB_APP_SECRET}`
+    : null
+  
   try {
-    // Method 1: Try to fetch profile page HTML
+    // Method 1: Try Graph API with access token
+    if (accessToken) {
+      const infoUrl = `https://graph.facebook.com/${uid}?fields=id,name&access_token=${accessToken}`
+      const infoRes = await fetch(infoUrl)
+      const infoData = await infoRes.json()
+      
+      // Check for errors
+      if (infoData.error) {
+        const errorCode = infoData.error.code
+        const errorMsg = infoData.error.message || ''
+        
+        // Specific error codes for die/invalid accounts
+        if (errorCode === 803 || errorCode === 100 || 
+            errorMsg.includes('User ID') || 
+            errorMsg.includes('does not exist')) {
+          return { input: raw, uid, status: 'die', avatar: null }
+        }
+        
+        // Other errors
+        return { input: raw, uid, status: 'error', avatar: null }
+      }
+      
+      // Account is live
+      if (infoData.id) {
+        // Get avatar
+        const avatarUrl = `https://graph.facebook.com/${uid}/picture?type=large&redirect=false&access_token=${accessToken}`
+        const avatarRes = await fetch(avatarUrl)
+        const avatarData = await avatarRes.json()
+        const avatar = avatarData.data?.url && !avatarData.data.is_silhouette 
+          ? avatarData.data.url 
+          : null
+        
+        return { input: raw, uid, status: 'live', avatar }
+      }
+    }
+    
+    // Fallback: Try without token (will likely fail but worth trying)
     const profileUrl = /^\d+$/.test(uid) 
       ? `https://www.facebook.com/profile.php?id=${uid}`
       : `https://www.facebook.com/${uid}`
@@ -28,14 +70,7 @@ async function checkAccount(raw) {
     
     const html = await response.text()
     
-    // Check for indicators that account is live
-    const isLive = 
-      html.includes('"profile_id"') ||
-      html.includes('profilePicLarge') ||
-      html.includes('og:title') ||
-      (response.status === 200 && !html.includes('Content Not Found') && !html.includes('This content isn'))
-    
-    // Check for indicators that account is die/invalid
+    // Check for die indicators
     const isDie = 
       html.includes('Content Not Found') ||
       html.includes('This content isn') ||
@@ -47,17 +82,16 @@ async function checkAccount(raw) {
       return { input: raw, uid, status: 'die', avatar: null }
     }
     
+    // Check for live indicators
+    const isLive = 
+      html.includes('"profile_id"') ||
+      html.includes('profilePicLarge') ||
+      html.includes('og:title')
+    
     if (isLive) {
-      // Try to extract avatar from HTML
-      let avatar = null
-      const avatarMatch = html.match(/"profilePicLarge":\{"uri":"([^"]+)"/)
-      if (avatarMatch) {
-        avatar = avatarMatch[1].replace(/\\u0025/g, '%').replace(/\\/g, '')
-      }
-      return { input: raw, uid, status: 'live', avatar }
+      return { input: raw, uid, status: 'live', avatar: null }
     }
     
-    // If uncertain, mark as error
     return { input: raw, uid, status: 'error', avatar: null }
   } catch (err) {
     return { input: raw, uid, status: 'error', avatar: null }
@@ -72,11 +106,24 @@ toolsRoutes.post('/checklive', async (c) => {
   if (list.length === 0) return c.json({ error: 'Danh sách trống.' }, 400)
   if (list.length > 50) return c.json({ error: 'Tối đa 50 tài khoản mỗi lần.' }, 400)
 
+  // Check if Facebook App credentials are configured
+  const hasAppToken = c.env?.FB_APP_ID && c.env?.FB_APP_SECRET
+  
   const results = []
   for (let i = 0; i < list.length; i += 5) {
-    const batchResults = await Promise.all(list.slice(i, i + 5).map(checkAccount))
+    const batchResults = await Promise.all(
+      list.slice(i, i + 5).map(acc => checkAccount(acc, c.env))
+    )
     results.push(...batchResults)
   }
 
-  return c.json({ results, summary: { total: results.length, live: results.filter(r => r.status === 'live').length, die: results.filter(r => r.status === 'die').length } })
+  return c.json({ 
+    results, 
+    summary: { 
+      total: results.length, 
+      live: results.filter(r => r.status === 'live').length, 
+      die: results.filter(r => r.status === 'die').length 
+    },
+    note: hasAppToken ? null : 'Cần cấu hình FB_APP_ID và FB_APP_SECRET để check chính xác hơn.'
+  })
 })

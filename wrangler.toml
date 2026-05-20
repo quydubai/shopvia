@@ -11,3 +11,7 @@ database_id = "6903025d-d1a7-4637-84f2-2d99d015ba90"
 # Environment variables
 [vars]
 JWT_SECRET = "huynhquymedia_secret_key_change_in_production"
+# Facebook App credentials for Check Live feature
+# Get these from https://developers.facebook.com/apps
+# FB_APP_ID = "your_app_id_here"
+# FB_APP_SECRET = "your_app_secret_here"
