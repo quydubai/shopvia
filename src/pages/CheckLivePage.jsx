@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search, CheckCircle, XCircle, AlertTriangle, Loader2, Copy, Download, Trash2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-
-const API_BASE = 'http://localhost:3001/api'
+import { api } from '../lib/api'
 
 export default function CheckLivePage() {
   const { user, loading: authLoading } = useAuth()
@@ -25,13 +24,7 @@ export default function CheckLivePage() {
     setError(''); setLoading(true); setResults(null); setSummary(null)
 
     try {
-      const res = await fetch(`${API_BASE}/tools/checklive`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accounts: input }),
-      })
-      const data = await res.json()
-      if (data.error) throw new Error(data.error)
+      const data = await api.post('/tools/checklive', { accounts: input })
       setResults(data.results)
       setSummary(data.summary)
     } catch (err) {

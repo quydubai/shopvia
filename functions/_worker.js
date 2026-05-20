@@ -3,19 +3,23 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
 // Import routes
-import { authRoutes } from './api/routes/auth.js';
-import { productRoutes } from './api/routes/products.js';
-import { orderRoutes } from './api/routes/orders.js';
-import { rechargeRoutes } from './api/routes/recharge.js';
-import { userRoutes } from './api/routes/user.js';
-import { blogRoutes } from './api/routes/blogs.js';
-import { toolsRoutes } from './api/routes/tools.js';
-import { adminRoutes } from './api/routes/admin.js';
+import { authRoutes } from './_api/routes/auth.js';
+import { productRoutes } from './_api/routes/products.js';
+import { orderRoutes } from './_api/routes/orders.js';
+import { rechargeRoutes } from './_api/routes/recharge.js';
+import { userRoutes } from './_api/routes/user.js';
+import { blogRoutes } from './_api/routes/blogs.js';
+import { toolsRoutes } from './_api/routes/tools.js';
+import { adminRoutes } from './_api/routes/admin.js';
 
 const app = new Hono();
 
-// CORS
-app.use('/*', cors());
+// CORS - allow all origins and methods
+app.use('/*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+}));
 
 // Mount API routes
 app.route('/api/auth', authRoutes);
