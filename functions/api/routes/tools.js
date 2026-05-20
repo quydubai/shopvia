@@ -14,19 +14,52 @@ function extractUID(input) {
 async function checkAccount(raw) {
   const uid = extractUID(raw)
   try {
-    const graphRes = await fetch(`https://graph.facebook.com/${uid}/picture?redirect=false`, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
+    // Method 1: Try to fetch profile page HTML
+    const profileUrl = /^\d+$/.test(uid) 
+      ? `https://www.facebook.com/profile.php?id=${uid}`
+      : `https://www.facebook.com/${uid}`
+    
+    const response = await fetch(profileUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+      redirect: 'follow',
     })
-    const graphData = await graphRes.json()
-    if (graphData.data?.url) return { input: raw, uid, status: 'live', avatar: graphData.data.is_silhouette ? null : graphData.data.url }
-
-    const idRes = await fetch(`https://graph.facebook.com/${uid}`, { headers: { 'User-Agent': 'Mozilla/5.0' } })
-    const idData = await idRes.json()
-    if (idData.id || idData.name) return { input: raw, uid, status: 'live', avatar: null }
-    if (idData.error?.message?.includes('Unsupported get request')) return { input: raw, uid, status: 'live', avatar: null }
-
-    return { input: raw, uid, status: 'die', avatar: null }
-  } catch {
+    
+    const html = await response.text()
+    
+    // Check for indicators that account is live
+    const isLive = 
+      html.includes('"profile_id"') ||
+      html.includes('profilePicLarge') ||
+      html.includes('og:title') ||
+      (response.status === 200 && !html.includes('Content Not Found') && !html.includes('This content isn'))
+    
+    // Check for indicators that account is die/invalid
+    const isDie = 
+      html.includes('Content Not Found') ||
+      html.includes('This content isn') ||
+      html.includes('Page Not Found') ||
+      html.includes('Sorry, this page') ||
+      response.status === 404
+    
+    if (isDie) {
+      return { input: raw, uid, status: 'die', avatar: null }
+    }
+    
+    if (isLive) {
+      // Try to extract avatar from HTML
+      let avatar = null
+      const avatarMatch = html.match(/"profilePicLarge":\{"uri":"([^"]+)"/)
+      if (avatarMatch) {
+        avatar = avatarMatch[1].replace(/\\u0025/g, '%').replace(/\\/g, '')
+      }
+      return { input: raw, uid, status: 'live', avatar }
+    }
+    
+    // If uncertain, mark as error
+    return { input: raw, uid, status: 'error', avatar: null }
+  } catch (err) {
     return { input: raw, uid, status: 'error', avatar: null }
   }
 }
