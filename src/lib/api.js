@@ -20,6 +20,12 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
+  // Generic methods
+  get: (endpoint) => request(endpoint),
+  post: (endpoint, body) => request(endpoint, { method: 'POST', body: JSON.stringify(body) }),
+  put: (endpoint, body) => request(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
+  delete: (endpoint) => request(endpoint, { method: 'DELETE' }),
+
   // Auth
   login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   register: (body) => request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
