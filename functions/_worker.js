@@ -43,4 +43,14 @@ app.onError((err, c) => {
   return c.json({ error: 'Lỗi server. Vui lòng thử lại.' }, 500);
 });
 
-export default app;
+export default {
+  async fetch(request, env, ctx) {
+    // Only handle /api/* routes
+    const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/')) {
+      return app.fetch(request, env, ctx);
+    }
+    // Pass through to static assets
+    return env.ASSETS.fetch(request);
+  }
+};
