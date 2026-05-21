@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ShoppingCart, Package, AlertCircle, CheckCircle, Loader2, Copy, Heart, ShieldAlert, Minus, Plus, Tag, BarChart3, Layers } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, Package, AlertCircle, CheckCircle, Loader2, Copy, Heart, ShieldAlert, Minus, Plus, Tag, BarChart3, Layers, Download } from 'lucide-react'
 import { api, formatVND } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 
@@ -145,9 +145,18 @@ export default function CategoryPage() {
             <div className="rounded-xl p-4 mb-4" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)' }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[12px] text-muted font-bold uppercase">Dữ liệu nhận được:</span>
-                <button onClick={copyData} className="flex items-center gap-1 text-[12px] hover:underline" style={{ color: 'var(--accent)' }}><Copy size={12} /> Copy</button>
+                <div className="flex items-center gap-2">
+                  <button onClick={copyData} className="flex items-center gap-1 text-[12px] hover:underline" style={{ color: 'var(--accent)' }}><Copy size={12} /> Copy</button>
+                  <button onClick={() => { const blob = new Blob([result.data], { type: 'text/plain' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `donhang_${result.order_id}.txt`; a.click(); URL.revokeObjectURL(url); }} className="flex items-center gap-1 text-[12px] text-green-400 hover:underline"><Download size={12} /> Tải TXT</button>
+                </div>
               </div>
               <pre className="text-[13px] text-green-400 whitespace-pre-wrap break-all font-mono">{result.data || 'Không có dữ liệu'}</pre>
+            </div>
+            <div className="flex items-start gap-2 p-3 rounded-xl mb-3 bg-yellow-900/10 border border-yellow-800/20">
+              <Download size={13} className="text-yellow-400 mt-0.5 shrink-0" />
+              <p className="text-[11px] text-yellow-400/90 leading-relaxed">
+                Hãy tải xuống file TXT để lưu trữ. Dữ liệu sẽ <strong>tự động xóa sau 7 ngày</strong> kể từ khi mua.
+              </p>
             </div>
             <div className="flex items-start gap-2 p-3 rounded-xl mb-4 bg-yellow-900/10 border border-yellow-800/20">
               <ShieldAlert size={14} className="text-yellow-400 mt-0.5 shrink-0" />

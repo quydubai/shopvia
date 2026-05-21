@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Loader2, Copy, Eye, X, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, Loader2, Copy, Eye, X, ShieldAlert, Download, Info } from 'lucide-react'
 import { api, formatVND } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
+
+function downloadTxt(filename, content) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 export default function OrdersPage() {
   const { user, loading: authLoading } = useAuth()
@@ -21,13 +31,26 @@ export default function OrdersPage() {
     try { const d = await api.getOrder(id); setDetail(d.order) } catch {}
   }
 
+  const handleDownload = (order) => {
+    const filename = `donhang_${order.id}_${order.product_name?.replace(/\s+/g, '_') || 'data'}.txt`
+    downloadTxt(filename, order.data_received)
+  }
+
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin" style={{ color: 'var(--accent)' }} size={32} /></div>
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4">
         <Link to="/" className="w-10 h-10 rounded-xl flex items-center justify-center text-muted hover:text-[var(--accent)] transition-colors" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)' }}><ArrowLeft size={18} /></Link>
         <h1 className="text-[24px] font-bold text-heading">Lịch sử đơn hàng</h1>
+      </div>
+
+      {/* Thông báo tự xóa sau 7 ngày */}
+      <div className="rounded-xl p-3 mb-6 flex items-start gap-2" style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+        <Info size={14} className="text-yellow-500 shrink-0 mt-0.5" />
+        <div className="text-[12px] text-yellow-300/90 leading-relaxed">
+          <strong className="text-yellow-400">Lưu ý:</strong> Dữ liệu tài khoản đã mua sẽ tự động xóa sau <strong>7 ngày</strong>. Vui lòng tải xuống file TXT để đảm bảo không mất dữ liệu.
+        </div>
       </div>
 
       {detail && (
@@ -43,19 +66,35 @@ export default function OrdersPage() {
               <div className="flex justify-between"><span className="text-muted">Tổng tiền:</span><span className="font-bold" style={{ color: 'var(--accent)' }}>{formatVND(detail.total_price)}</span></div>
               <div className="flex justify-between"><span className="text-muted">Thời gian:</span><span className="text-heading">{new Date(detail.created_at).toLocaleString('vi')}</span></div>
             </div>
-            {detail.data_received && (
-              <div className="rounded-lg p-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)' }}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] text-muted font-bold uppercase">Dữ liệu:</span>
-                  <button onClick={() => navigator.clipboard.writeText(detail.data_received)} className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--accent)' }}><Copy size={10} /> Copy</button>
+            {detail.data_received ? (
+              <>
+                <div className="rounded-lg p-3" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] text-muted font-bold uppercase">Dữ liệu:</span>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => navigator.clipboard.writeText(detail.data_received)} className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--accent)' }}><Copy size={10} /> Copy</button>
+                      <button onClick={() => handleDownload(detail)} className="flex items-center gap-1 text-[11px] text-green-400"><Download size={10} /> Tải TXT</button>
+                    </div>
+                  </div>
+                  <pre className="text-[12px] text-green-400 font-mono whitespace-pre-wrap break-all">{detail.data_received}</pre>
                 </div>
-                <pre className="text-[12px] text-green-400 font-mono whitespace-pre-wrap break-all">{detail.data_received}</pre>
+                {/* Lưu ý tải xuống */}
+                <div className="flex items-start gap-2 p-3 rounded-xl mt-3 bg-yellow-900/10 border border-yellow-800/20">
+                  <Download size={13} className="text-yellow-400 mt-0.5 shrink-0" />
+                  <p className="text-[11px] text-yellow-400/90 leading-relaxed">
+                    Hãy tải xuống file TXT để lưu trữ. Dữ liệu sẽ tự động xóa sau <strong>7 ngày</strong> kể từ khi mua.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-lg p-4 text-center" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)' }}>
+                <p className="text-[12px] text-muted">Dữ liệu đã hết hạn hoặc không có dữ liệu.</p>
               </div>
             )}
-            <div className="flex items-start gap-2 p-3 rounded-xl mt-4 bg-yellow-900/10 border border-yellow-800/20">
+            <div className="flex items-start gap-2 p-3 rounded-xl mt-3 bg-yellow-900/10 border border-yellow-800/20">
               <ShieldAlert size={14} className="text-yellow-400 mt-0.5 shrink-0" />
               <p className="text-[11px] text-yellow-400/90 leading-relaxed">
-                Sản phẩm chỉ được sử dụng cho mục đích hợp pháp. HuynhQuyMedia.Net không chịu trách nhiệm nếu bạn sử dụng sai mục đích. Mọi hậu quả phát sinh do người mua tự chịu.
+                Sản phẩm chỉ được sử dụng cho mục đích hợp pháp. HuynhQuyMedia.Net không chịu trách nhiệm nếu bạn sử dụng sai mục đích.
               </p>
             </div>
           </div>
@@ -73,7 +112,7 @@ export default function OrdersPage() {
                 <th className="px-4 py-2.5 text-left font-medium">Tổng tiền</th>
                 <th className="px-4 py-2.5 text-left font-medium">TT</th>
                 <th className="px-4 py-2.5 text-left font-medium">Thời gian</th>
-                <th className="px-4 py-2.5 text-right font-medium">Xem</th>
+                <th className="px-4 py-2.5 text-right font-medium">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -85,7 +124,11 @@ export default function OrdersPage() {
                   <td className="px-4 py-2.5 font-bold" style={{ color: 'var(--accent)' }}>{formatVND(o.total_price)}</td>
                   <td className="px-4 py-2.5"><span className={`text-[11px] px-2 py-0.5 rounded font-bold ${o.status === 'completed' ? 'bg-green-900/30 text-green-400' : 'bg-yellow-900/30 text-yellow-400'}`}>{o.status}</span></td>
                   <td className="px-4 py-2.5 text-muted">{new Date(o.created_at).toLocaleString('vi')}</td>
-                  <td className="px-4 py-2.5 text-right"><button onClick={() => viewDetail(o.id)} className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-900/20"><Eye size={14} /></button></td>
+                  <td className="px-4 py-2.5 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => viewDetail(o.id)} className="p-1.5 rounded-lg text-blue-400 hover:bg-blue-900/20" title="Xem chi tiết"><Eye size={14} /></button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {orders.length === 0 && <tr><td colSpan="7" className="px-4 py-8 text-center text-muted">Chưa có đơn hàng nào.</td></tr>}

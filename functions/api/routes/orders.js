@@ -56,6 +56,11 @@ orderRoutes.get('/', async (c) => {
   const offset = (pageNum - 1) * limitNum
   const user = c.get('user')
 
+  // Auto-cleanup: Xóa data_received của đơn hàng cũ hơn 7 ngày
+  await c.env.DB.prepare(
+    "UPDATE orders SET data_received = '' WHERE user_id = ? AND data_received != '' AND created_at < datetime('now', '-7 days')"
+  ).bind(user.id).run()
+
   const countResult = await c.env.DB.prepare('SELECT COUNT(*) as total FROM orders WHERE user_id = ?').bind(user.id).first()
   const rows = await c.env.DB.prepare(
     `SELECT o.*, p.name as product_name, p.slug as product_slug
