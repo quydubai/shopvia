@@ -72,7 +72,7 @@ export default function OrdersPage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] text-muted font-bold uppercase">Dữ liệu:</span>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => navigator.clipboard.writeText(detail.data_received)} className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--accent)' }}><Copy size={10} /> Copy</button>
+                      <button onClick={() => { const ta = document.createElement('textarea'); ta.value = detail.data_received; ta.style.position = 'fixed'; ta.style.left = '-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }} className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--accent)' }}><Copy size={10} /> Copy</button>
                       <button onClick={() => handleDownload(detail)} className="flex items-center gap-1 text-[11px] text-green-400"><Download size={10} /> Tải TXT</button>
                     </div>
                   </div>

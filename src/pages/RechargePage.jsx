@@ -69,7 +69,15 @@ export default function RechargePage() {
   }
 
   const copyText = (text) => {
-    navigator.clipboard.writeText(text)
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.left = '-9999px'
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
     setCopied(text)
     setTimeout(() => setCopied(''), 2000)
   }

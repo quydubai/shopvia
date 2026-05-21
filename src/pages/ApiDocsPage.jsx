@@ -125,7 +125,16 @@ function EndpointCard({ ep }) {
   const [copied, setCopied] = useState(false)
 
   const copyPath = () => {
-    navigator.clipboard.writeText(API_BASE.replace('/api', '') + ep.path)
+    const text = API_BASE.replace('/api', '') + ep.path
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.left = '-9999px'
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }

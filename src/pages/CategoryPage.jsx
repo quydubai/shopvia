@@ -61,17 +61,15 @@ export default function CategoryPage() {
 
   const copyData = () => {
     if (result?.data) {
-      try {
-        navigator.clipboard.writeText(result.data)
-      } catch {
-        // Fallback cho trình duyệt không hỗ trợ clipboard API
-        const ta = document.createElement('textarea')
-        ta.value = result.data
-        document.body.appendChild(ta)
-        ta.select()
-        document.execCommand('copy')
-        document.body.removeChild(ta)
-      }
+      const textarea = document.createElement('textarea')
+      textarea.value = result.data
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
     }
   }
 

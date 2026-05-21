@@ -38,7 +38,15 @@ export default function CheckLivePage() {
   const exportResults = (status) => {
     const items = results?.filter(r => status === 'all' ? true : r.status === status) || []
     const text = items.map(r => r.uid).join('\n')
-    navigator.clipboard.writeText(text)
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.left = '-9999px'
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
   }
 
   const downloadResults = (status) => {

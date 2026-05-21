@@ -83,7 +83,15 @@ function TOTPCard({ item, onRemove }) {
   }, [refresh])
 
   const copyOtp = () => {
-    navigator.clipboard.writeText(otp)
+    const ta = document.createElement('textarea')
+    ta.value = otp
+    ta.style.position = 'fixed'
+    ta.style.left = '-9999px'
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
@@ -275,7 +283,7 @@ export default function Get2FAPage() {
           <div className="rounded-xl p-4" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)' }}>
             <div className="flex items-center justify-between mb-3">
               <span className="text-[32px] font-bold tracking-[8px] font-mono text-heading">{quickOtp}</span>
-              <button onClick={() => { navigator.clipboard.writeText(quickOtp); setQuickCopied(true); setTimeout(() => setQuickCopied(false), 1500) }}
+              <button onClick={() => { const ta = document.createElement('textarea'); ta.value = quickOtp; ta.style.position = 'fixed'; ta.style.left = '-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); setQuickCopied(true); setTimeout(() => setQuickCopied(false), 1500) }}
                 className="p-2 rounded-lg transition-colors" style={{ color: quickCopied ? '#22c55e' : 'var(--accent)' }}>
                 {quickCopied ? <Check size={20} /> : <Copy size={20} />}
               </button>
