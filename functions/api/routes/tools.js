@@ -11,10 +11,56 @@ function extractUID(input) {
   return u ? u[1] : input
 }
 
+async function resolveUsernameToUid(username) {
+  try {
+    const response = await fetch(`https://www.facebook.com/${username}`, {
+      headers: {
+        'User-Agent': 'facebookexternalhit/1.1',
+        'Accept': 'text/html',
+      },
+      redirect: 'follow',
+    })
+    
+    const html = await response.text()
+    
+    // Try multiple patterns to extract UID
+    const patterns = [
+      /"userID":"(\d+)"/,
+      /"profile_id":(\d+)/,
+      /"entity_id":"(\d+)"/,
+      /"actor_id":"(\d+)"/,
+      /content="fb:\/\/profile\/(\d+)"/,
+      /\/profile\.php\?id=(\d+)/,
+    ]
+    
+    for (const pattern of patterns) {
+      const match = html.match(pattern)
+      if (match && match[1] !== '0') {
+        return match[1]
+      }
+    }
+    
+    return null
+  } catch {
+    return null
+  }
+}
+
 async function checkAccount(raw, env) {
-  const uid = extractUID(raw)
+  let uid = extractUID(raw)
   
   try {
+    // If UID is not numeric (it's a username), resolve it first
+    if (!/^\d+$/.test(uid)) {
+      const resolvedUid = await resolveUsernameToUid(uid)
+      if (resolvedUid) {
+        uid = resolvedUid
+      } else {
+        // Username could not be resolved = die
+        return { input: raw, uid, status: 'die', avatar: null }
+      }
+    }
+    
     // KEY METHOD: Check Facebook avatar redirect
     // - Live account: redirects to scontent.*.fbcdn.net/... (real avatar)
     // - Die account: redirects to static.xx.fbcdn.net/rsrc.php/... (default avatar GIF)
@@ -42,29 +88,6 @@ async function checkAccount(raw, env) {
     // Real avatar pattern (account live)
     if (location.includes('scontent') && location.includes('fbcdn.net')) {
       return { input: raw, uid, status: 'live', avatar: location }
-    }
-    
-    // For non-numeric UIDs (usernames), fallback to checking via redirect
-    if (!/^\d+$/.test(uid)) {
-      // Username might exist but graph doesn't redirect properly
-      // Try the picture without /picture to see if profile exists
-      const profileResponse = await fetch(`https://www.facebook.com/${uid}`, {
-        method: 'HEAD',
-        redirect: 'manual',
-        headers: {
-          'User-Agent': 'facebookexternalhit/1.1',
-        },
-      })
-      
-      const profileLoc = profileResponse.headers.get('location') || ''
-      const status = profileResponse.status
-      
-      // If profile page returns ok or redirects to login (private profile)
-      if (status === 200 || (status >= 300 && status < 400 && profileLoc.includes('login'))) {
-        return { input: raw, uid, status: 'live', avatar: null }
-      }
-      
-      return { input: raw, uid, status: 'die', avatar: null }
     }
     
     return { input: raw, uid, status: 'die', avatar: null }
