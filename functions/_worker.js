@@ -11,6 +11,7 @@ import { userRoutes } from './_api/routes/user.js';
 import { blogRoutes } from './_api/routes/blogs.js';
 import { toolsRoutes } from './_api/routes/tools.js';
 import { adminRoutes } from './_api/routes/admin.js';
+import { twofaRoutes } from './_api/routes/twofa.js';
 
 const app = new Hono();
 
@@ -30,6 +31,7 @@ app.route('/api/user', userRoutes);
 app.route('/api/blogs', blogRoutes);
 app.route('/api/tools', toolsRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/2fa', twofaRoutes);
 
 // Health check
 app.get('/api/health', (c) => c.json({ status: 'ok', time: new Date().toISOString() }));

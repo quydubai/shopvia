@@ -58,6 +58,11 @@ export const api = {
   getTransactions: (params = '') => request(`/user/transactions?${params}`),
   getLogs: () => request('/user/logs'),
 
+  // 2FA Keys
+  get2FAKeys: () => request('/2fa/keys'),
+  add2FAKey: (body) => request('/2fa/keys', { method: 'POST', body: JSON.stringify(body) }),
+  delete2FAKey: (id) => request(`/2fa/keys/${id}`, { method: 'DELETE' }),
+
   // Admin
   admin: {
     getStats: () => request('/admin/stats'),

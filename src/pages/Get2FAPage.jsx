@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Key, Copy, Check, RefreshCw, Trash2, Plus, Clock, Shield } from 'lucide-react'
+import { ArrowLeft, Key, Copy, Check, RefreshCw, Trash2, Plus, Clock, Shield, Info, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { api } from '../lib/api'
 
 // ── TOTP implementation (no external deps) ──
 function base32Decode(str) {
@@ -47,12 +48,14 @@ async function generateTOTP(secret, period = 30, digits = 6) {
   return { otp, remaining, period }
 }
 
-// ── Saved keys management ──
-function getSavedKeys() {
-  try { return JSON.parse(localStorage.getItem('hqm_2fa_keys') || '[]') } catch { return [] }
-}
-function saveKeys(keys) {
-  localStorage.setItem('hqm_2fa_keys', JSON.stringify(keys))
+// ── Tính số ngày còn lại trước khi xóa ──
+function getDaysRemaining(createdAt) {
+  const created = new Date(createdAt)
+  const expiry = new Date(created.getTime() + 7 * 24 * 60 * 60 * 1000)
+  const now = new Date()
+  const diff = expiry - now
+  const days = Math.ceil(diff / (24 * 60 * 60 * 1000))
+  return Math.max(0, days)
 }
 
 // ── Single 2FA Card ──
@@ -61,6 +64,7 @@ function TOTPCard({ item, onRemove }) {
   const [remaining, setRemaining] = useState(30)
   const [copied, setCopied] = useState(false)
   const intervalRef = useRef(null)
+  const daysLeft = getDaysRemaining(item.created_at)
 
   const refresh = useCallback(async () => {
     try {
@@ -95,7 +99,12 @@ function TOTPCard({ item, onRemove }) {
           </div>
           <div>
             <div className="text-[13px] font-semibold text-heading">{item.name || 'Không tên'}</div>
-            <div className="text-[11px] text-muted font-mono">{item.secret.slice(0, 8)}****</div>
+            <div className="flex items-center gap-2">
+              <div className="text-[11px] text-muted font-mono">{item.secret.slice(0, 8)}****</div>
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${daysLeft <= 1 ? 'text-red-400 bg-red-900/20' : daysLeft <= 3 ? 'text-yellow-400 bg-yellow-900/20' : 'text-muted'}`} style={{ background: daysLeft > 3 ? 'var(--bg-elevated)' : '' }}>
+                Còn {daysLeft} ngày
+              </span>
+            </div>
           </div>
         </div>
         <button onClick={() => onRemove(item.id)} className="p-1.5 rounded-lg text-muted hover:text-red-400 transition-colors">
@@ -136,16 +145,36 @@ export default function Get2FAPage() {
     if (!authLoading && !user) navigate('/login')
   }, [user, authLoading, navigate])
 
-  const [keys, setKeys] = useState(getSavedKeys)
+  const [keys, setKeys] = useState([])
+  const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')
   const [newSecret, setNewSecret] = useState('')
+  const [adding, setAdding] = useState(false)
   const [quickSecret, setQuickSecret] = useState('')
   const [quickOtp, setQuickOtp] = useState(null)
   const [quickRemaining, setQuickRemaining] = useState(30)
   const [quickCopied, setQuickCopied] = useState(false)
   const [error, setError] = useState('')
   const quickIntervalRef = useRef(null)
+
+  // Load keys từ server
+  const loadKeys = useCallback(async () => {
+    if (!user) return
+    try {
+      setLoading(true)
+      const data = await api.get2FAKeys()
+      setKeys(data.keys || [])
+    } catch (err) {
+      setError(err.message || 'Không tải được danh sách keys.')
+    } finally {
+      setLoading(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (user) loadKeys()
+  }, [user, loadKeys])
 
   // Quick check — nhập secret, get mã ngay
   const handleQuickCheck = async () => {
@@ -173,22 +202,31 @@ export default function Get2FAPage() {
     return () => { if (quickIntervalRef.current) clearInterval(quickIntervalRef.current) }
   }, [])
 
-  // Save key
-  const handleAddKey = () => {
+  // Save key qua API
+  const handleAddKey = async () => {
     const s = newSecret.replace(/\s/g, '').toUpperCase()
     if (!s || s.length < 6) return setError('Secret key không hợp lệ.')
     setError('')
-    const newKey = { id: Date.now(), name: newName.trim() || 'Facebook', secret: s }
-    const updated = [...keys, newKey]
-    setKeys(updated)
-    saveKeys(updated)
-    setNewName(''); setNewSecret(''); setShowAdd(false)
+    try {
+      setAdding(true)
+      const data = await api.add2FAKey({ name: newName.trim() || 'Facebook', secret: s })
+      setKeys([data.key, ...keys])
+      setNewName(''); setNewSecret(''); setShowAdd(false)
+    } catch (err) {
+      setError(err.message || 'Không thể lưu key.')
+    } finally {
+      setAdding(false)
+    }
   }
 
-  const handleRemoveKey = (id) => {
-    const updated = keys.filter(k => k.id !== id)
-    setKeys(updated)
-    saveKeys(updated)
+  // Xóa key qua API
+  const handleRemoveKey = async (id) => {
+    try {
+      await api.delete2FAKey(id)
+      setKeys(keys.filter(k => k.id !== id))
+    } catch (err) {
+      setError(err.message || 'Không thể xóa key.')
+    }
   }
 
   const quickProgress = (quickRemaining / 30) * 100
@@ -256,11 +294,19 @@ export default function Get2FAPage() {
       </div>
 
       {/* Saved Keys */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <h2 className="text-[16px] font-semibold text-heading">Khóa đã lưu</h2>
         <button onClick={() => setShowAdd(!showAdd)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-medium transition-all" style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-border)', color: 'var(--accent)' }}>
           <Plus size={14} /> Thêm khóa
         </button>
+      </div>
+
+      {/* Lưu ý 7 ngày */}
+      <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+        <Info size={14} className="text-yellow-500 shrink-0 mt-0.5" />
+        <div className="text-[12px] text-yellow-300/90 leading-relaxed">
+          <strong className="text-yellow-400">Lưu ý:</strong> Các mã 2FA đã lưu sẽ tự động xóa sau <strong>7 ngày</strong>. Mã được lưu trên tài khoản nên bạn có thể truy cập từ bất kỳ trình duyệt nào sau khi đăng nhập.
+        </div>
       </div>
 
       {/* Add key form */}
@@ -276,7 +322,9 @@ export default function Get2FAPage() {
               <input type="text" value={newSecret} onChange={(e) => setNewSecret(e.target.value)} placeholder="Nhập secret key base32" className="w-full input-theme px-3 py-2 text-[13px] rounded-lg font-mono" />
             </div>
             <div className="flex gap-2">
-              <button onClick={handleAddKey} className="btn-primary px-4 py-2 rounded-lg text-[13px]">Lưu</button>
+              <button onClick={handleAddKey} disabled={adding} className="btn-primary px-4 py-2 rounded-lg text-[13px] flex items-center gap-1.5 disabled:opacity-50">
+                {adding ? <><Loader2 size={14} className="animate-spin" /> Đang lưu...</> : 'Lưu'}
+              </button>
               <button onClick={() => { setShowAdd(false); setNewName(''); setNewSecret('') }} className="px-4 py-2 rounded-lg text-[13px] text-body" style={{ border: '1px solid var(--border-primary)' }}>Huỷ</button>
             </div>
           </div>
@@ -284,7 +332,12 @@ export default function Get2FAPage() {
       )}
 
       {/* Keys list */}
-      {keys.length > 0 ? (
+      {loading ? (
+        <div className="card p-8 text-center shadow-elevated">
+          <Loader2 size={24} className="mx-auto mb-3 text-muted animate-spin" />
+          <p className="text-[13px] text-muted">Đang tải danh sách...</p>
+        </div>
+      ) : keys.length > 0 ? (
         <div className="space-y-3">
           {keys.map(k => <TOTPCard key={k.id} item={k} onRemove={handleRemoveKey} />)}
         </div>
