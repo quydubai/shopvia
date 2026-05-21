@@ -1,82 +1,22 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Mail, Loader2, CheckCircle, AlertCircle, RefreshCw, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, Mail, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 import { api } from '../lib/api'
+import Turnstile from '../components/Turnstile'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
-  const [captchaInput, setCaptchaInput] = useState('')
-  const [captchaCode, setCaptchaCode] = useState('')
-  const canvasRef = useRef(null)
-
-  const generateCaptcha = useCallback(() => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-    let code = ''
-    for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)]
-    setCaptchaCode(code)
-    setCaptchaInput('')
-    return code
-  }, [])
-
-  const drawCaptcha = useCallback((code) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    const w = canvas.width = 150
-    const h = canvas.height = 48
-    ctx.fillStyle = '#1a1a2e'
-    ctx.fillRect(0, 0, w, h)
-    for (let i = 0; i < 50; i++) {
-      ctx.fillStyle = `hsl(${Math.random() * 360}, 50%, ${30 + Math.random() * 30}%)`
-      ctx.beginPath()
-      ctx.arc(Math.random() * w, Math.random() * h, Math.random() * 2, 0, Math.PI * 2)
-      ctx.fill()
-    }
-    for (let i = 0; i < 4; i++) {
-      ctx.strokeStyle = `hsl(${Math.random() * 360}, 40%, 40%)`
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(Math.random() * w, Math.random() * h)
-      ctx.lineTo(Math.random() * w, Math.random() * h)
-      ctx.stroke()
-    }
-    const fonts = ['italic bold', 'bold', 'italic']
-    for (let i = 0; i < code.length; i++) {
-      const font = fonts[Math.floor(Math.random() * fonts.length)]
-      const size = 20 + Math.floor(Math.random() * 8)
-      ctx.font = `${font} ${size}px monospace`
-      ctx.fillStyle = `hsl(${Math.random() * 60 + 10}, 90%, 65%)`
-      ctx.save()
-      ctx.translate(15 + i * 25, 28 + Math.random() * 10 - 5)
-      ctx.rotate((Math.random() - 0.5) * 0.5)
-      ctx.fillText(code[i], 0, 0)
-      ctx.restore()
-    }
-  }, [])
-
-  useEffect(() => {
-    const code = generateCaptcha()
-    setTimeout(() => drawCaptcha(code), 50)
-  }, [])
-
-  const refreshCaptcha = () => {
-    const code = generateCaptcha()
-    setTimeout(() => drawCaptcha(code), 50)
-  }
+  const [turnstileToken, setTurnstileToken] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSuccess('')
     if (!email.trim()) return setError('Vui lòng nhập email.')
-    if (captchaInput.toLowerCase() !== captchaCode.toLowerCase()) {
-      setError('Mã xác nhận không chính xác.')
-      refreshCaptcha()
-      return
-    }
+    if (!turnstileToken) return setError('Vui lòng xác nhận captcha.')
 
     setLoading(true)
     try {
@@ -137,15 +77,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <div>
-              <label className="block text-[13px] text-body mb-2 font-medium">Mã xác nhận</label>
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"><ShieldCheck size={18} /></div>
-                  <input type="text" placeholder="Nhập mã bên cạnh" value={captchaInput} onChange={(e) => { setCaptchaInput(e.target.value); setError('') }} className="w-full input-theme pl-10 pr-4 py-3 text-[14px] rounded-xl" autoComplete="off" maxLength={5} />
-                </div>
-                <canvas ref={canvasRef} className="rounded-xl cursor-pointer shrink-0" style={{ border: '1px solid var(--border-primary)', height: 48, width: 150 }} onClick={refreshCaptcha} title="Click để đổi mã" />
-                <button type="button" onClick={refreshCaptcha} className="p-3 rounded-xl text-muted hover:text-heading transition-colors" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-primary)' }} title="Đổi mã mới"><RefreshCw size={18} /></button>
-              </div>
+              <Turnstile onVerify={(token) => setTurnstileToken(token)} onExpire={() => setTurnstileToken('')} />
             </div>
 
             <button
