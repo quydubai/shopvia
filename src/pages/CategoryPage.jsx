@@ -60,7 +60,19 @@ export default function CategoryPage() {
   }
 
   const copyData = () => {
-    if (result?.data) { navigator.clipboard.writeText(result.data); }
+    if (result?.data) {
+      try {
+        navigator.clipboard.writeText(result.data)
+      } catch {
+        // Fallback cho trình duyệt không hỗ trợ clipboard API
+        const ta = document.createElement('textarea')
+        ta.value = result.data
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+    }
   }
 
   if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin" style={{ color: 'var(--accent)' }} size={32} /></div>
